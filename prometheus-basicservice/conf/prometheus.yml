@@ -1,0 +1,64 @@
+    global:
+      #默认为(1分钟）规则周期，从监控目标上收集信息。
+      #其中scrape_interval可以基于全局或基于单个metric定义；然后将监控信息持久存储在其本地存储上,我们这里全局定义。
+      scrape_interval:     60s
+      #（默认为1m）另一个独立的规则周期，对告警规则做定期计算。
+      #其中evaluation_interval只有全局值；然后更新告警状态。
+      evaluation_interval: 60s
+
+    #每一个scrape_config对象可以定义多个数据采集的Job，每一个Job可以对应多个采集目标。
+    scrape_configs:
+
+      #可以定义多个采集任务
+      #这个job_name只抓取saf-demo-samples服务POD。
+      - job_name: k8s-saf-demo-samples
+        #在Kubernetes下，Promethues通过与Kubernetes API集成目前主要支持5种服务发现模式，分别是：Node、Service、Pod、Endpoints、Ingress。
+        #这个job定义只抓取pod采集目标源。
+        kubernetes_sd_configs:
+        - role: pod
+
+        #在每一个采集任务的配置中可以添加多个relabel_config配置，一个最简单的relabel配置如下。
+        relabel_configs:
+        #source_labels用于定位要抓取数据的目标POD实例。
+            ## The source labels select values from existing labels. Their content is concatenated
+            # using the configured separator and matched against the configured regular expression
+            # for the replace, keep, and drop actions.
+        #action的默认动作是 relace。
+            #replace	regex source_labels target_label replacement	根据正则匹配标签的值,替换标签target_label必须
+            #keep	regex source_labels	根据正则匹配标签的值保留数据采集源
+            #drop	regex source_labels	根据正则匹配标签的值剔除数据采集源
+            #hashmod	source_labels target_label modulus	hash模式
+            #labelmap	regex replacement	根据正则匹配标签的名称进行映射
+            #labeldrop	regex	根据正则匹配标签的名称剔除标签
+            #labelkeep	regex	根据正则匹配标签的名称保留标签
+        - source_labels: [__meta_kubernetes_pod_namespace]
+          action: keep
+          regex: inc
+        - source_labels: [__meta_kubernetes_pod_container_port_number]
+          action: keep
+          regex: 9145
+        #replace 动作流程
+            #从 source_labels 中获取需要操作的标签列表，并获取他们的值，这些值是一个列表，使用 separator 分割
+            #regex 中的正则表达式会对 值 列表的值进行过滤，为了方便需要使用正则分组
+            #使用分组就回通过从分组获取的匹配字符串 赋值给 $1 等，如果仅仅有一个分组的话，字段 replacement 的默认值为 $1
+            #新的 target_label 的内容会被 replacement 的内容替换掉，也就是说 target_label: replacement
+            #考虑到一些字段的默认值，仅仅写出 source_labels 和 target_label 就可以直接替换标签，这其实就是 labelmap 标签映射
+            #替换后的target_label会写入到metric中被采集到store
+        - source_labels: [__meta_kubernetes_pod_name]
+          separator: ;
+          regex: (.*)
+          target_label: pod
+          replacement: $1
+          action: replace
+        - source_labels: [__meta_kubernetes_pod_label_app]
+          separator: ;
+          regex: (.*)
+          target_label: app
+          replacement: $1
+          action: replace
+        - source_labels: [__meta_kubernetes_pod_label_app]
+          separator: ;
+          regex: (.*)
+          target_label: appId
+          replacement: $1
+          action: replace
