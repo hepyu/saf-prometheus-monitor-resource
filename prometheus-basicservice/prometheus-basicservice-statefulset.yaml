@@ -28,19 +28,6 @@ spec:
       #nodeSelector:
       #  node-role.kubernetes.io/monitor: 'true'
       terminationGracePeriodSeconds: 10
-      initContainers:
-      - name: git-sync
-        image: mikenowak/gitsync
-        env:
-        - name: WORKDIR
-          value: "/git"
-        - name: REPO_NAME
-          value: "saf-prometheus-monitor-resource"
-        - name: REPO_URL
-          value: "https://github.com/hepyu/saf-prometheus-monitor-resource.git"
-        volumeMounts:
-        - name: pv-metrics-basicservice-promethues 
-          mountPath: /git
       containers:
       - name: prometheus
         image: prom/prometheus:latest
@@ -50,6 +37,10 @@ spec:
         volumeMounts:
         - name: pv-metrics-basicservice-promethues 
           mountPath: /prometheus
+        - name: prometheus-config
+          mountPath: /etc/prometheus/prometheus.yml
+          subPath: prometheus.yml
+          readOnly: false
         command: ["/bin/prometheus"]
         #--config.file:指定prometheus配置文件位置
         #--storage.tsdb.path:指定采集数据的存储位置
@@ -58,7 +49,7 @@ spec:
         #--storage.tsdb.retention:采集数据保存时间
         #--web.enable-lifecycle:开启prometheus热更新，不重启的前提下更新配置
         #--web.enable-admin-api:默认情况下，管理时间序列的 API 是被禁用的，要启用它，我们需要在 Prometheus 的启动参数中添加--web.enable-admin-api这个参数,比如可以通过API删除过期数据
-        args: ["--config.file=/prometheus/saf-prometheus-monitor-resource/prometheus-basicservice/conf/prometheus.yml",
+        args: ["--config.file=/etc/prometheus/prometheus.yml",
              "--storage.tsdb.path=/prometheus",
              "--web.console.libraries=/etc/prometheus/console_libraries",
              "--web.console.templates=/etc/prometheus/consoles",
@@ -76,3 +67,10 @@ spec:
       - name: pv-metrics-basicservice-promethues 
         persistentVolumeClaim:
           claimName: pv-metrics-basicservice-promethues
+      - name: prometheus-config
+        configMap:
+          name: prometheus-basicservice
+          defaultMode: 511
+          items:
+            - key: prometheus.yml
+              path: prometheus.yml
