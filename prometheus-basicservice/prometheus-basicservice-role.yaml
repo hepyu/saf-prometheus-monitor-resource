@@ -2,11 +2,11 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: prometheus-basicservice 
-  namespace: monitoring
+  namespace: monitor
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: monitoring 
+  namespace: monitor
 roleRef:
   kind: ClusterRole
   name: admin

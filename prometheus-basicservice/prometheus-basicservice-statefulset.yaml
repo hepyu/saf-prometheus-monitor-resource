@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: prometheus-basicservice
-  namespace: monitoring
+  namespace: monitor
 spec:
   #headless service
   serviceName: prometheus-basicservice
